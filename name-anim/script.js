@@ -1,4 +1,4 @@
-const canvas = document.getElementById("heartCanvas");
+const canvas = document.getElementById("nameCanvas");
 const ctx = canvas.getContext("2d");
 const input = document.getElementById("nameInput");
 const button = document.getElementById("startButton");
