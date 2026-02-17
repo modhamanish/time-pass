@@ -34,12 +34,8 @@ function sampleText(text) {
 
   // FONT SIZE CALCULATION: Maximize based on words
   const longestWord = words.reduce((a, b) => (a.length > b.length ? a : b), "");
-  // Estimate max font size for width
   const horizontalScale = width / (longestWord.length * 0.85);
-  // Estimate max font size for height (allowing spacing between lines)
   const verticalScale = (height * 0.85) / (words.length || 1);
-
-  // Use the smaller of the two scales to ensure fit
   const fontSize = Math.min(horizontalScale, verticalScale * 0.85);
 
   const fontStack = `'Outfit', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif`;
@@ -53,27 +49,22 @@ function sampleText(text) {
   let currentY = (height - totalHeight) / 2 + lineHeight / 2;
 
   for (let word of words) {
-    // Draw word to get centered X coordinates
     const wordWidth = tempCtx.measureText(word).width;
     let charX = (width - wordWidth) / 2;
 
     for (let char of word) {
       tempCtx.clearRect(0, 0, width, height);
-      // Original style: No stroke, just fill for clean sampling
       tempCtx.fillText(char, width / 2, height / 2);
 
       const imageData = tempCtx.getImageData(0, 0, width, height).data;
       const charWidthMeasure = tempCtx.measureText(char).width;
-
       const charPoints = [];
-      const step = 2; // Original high density
+      const step = 2;
 
-      // Only scan the central area where the char was drawn
       for (let y = 0; y < height; y += step) {
         for (let x = 0; x < width; x += step) {
           const index = (y * width + x) * 4;
           if (imageData[index + 3] > 128) {
-            // Relocate points to their stacked position
             charPoints.push({
               x: x - width / 2 + charX + charWidthMeasure / 2,
               y: y - height / 2 + currentY,
@@ -82,13 +73,11 @@ function sampleText(text) {
         }
       }
 
-      // Restore randomization for original organic reveal
       for (let i = charPoints.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [charPoints[i], charPoints[j]] = [charPoints[j], charPoints[i]];
       }
 
-      // Pre-calculate connections (Original Style: Radius 15)
       const charLines = [];
       const connectionRadius = 15;
       const maxConnections = 2;
@@ -120,9 +109,17 @@ function sampleText(text) {
   return groups;
 }
 
-function startAnimation() {
+async function startAnimation() {
   const text = input.value.trim();
   if (!text) return;
+
+  // Ensure fonts are ready before starting to avoid race conditions
+  if (document.fonts) {
+    await document.fonts.ready;
+  }
+
+  // Small delay for mobile stability (ensures layout is final)
+  await new Promise((resolve) => setTimeout(resolve, 100));
 
   isAnimating = true;
   startTime = null;
@@ -201,4 +198,18 @@ function checkURLParams() {
   }
 }
 
-checkURLParams();
+// Ensure fonts are loaded before declaring ready to avoid layout shifts
+if (document.fonts) {
+  document.fonts.ready.then(() => {
+    button.innerText = "Start Animation";
+    button.disabled = false;
+    checkURLParams();
+  });
+  // Mark as loading initially if fonts are not ready
+  if (!document.fonts.check("900 16px Outfit")) {
+    button.innerText = "Loading Fonts...";
+    button.disabled = true;
+  }
+} else {
+  checkURLParams();
+}
